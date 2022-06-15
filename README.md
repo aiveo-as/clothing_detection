@@ -68,3 +68,5 @@ Example
 - pandas
 - opencv-python
 - torch
+- matplotlib
+- albumentations

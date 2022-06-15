@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
         ann_info = {
             "image_id": ann_id,
-            "bbox": [x1, y1, x2 - x1, y2 - y1],
+            "bbox": [x1, y1, x2, y2],
             "category_id": 1
         }
 
