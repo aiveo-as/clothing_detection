@@ -127,3 +127,16 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+data/miap/*.json
+data/miap/*.csv
+data/miap/*.lst
+data/miap/images
+
+data/modanet/*.json
+data/modanet/images
+
+data/train
+data/val
+
+data/*.json
