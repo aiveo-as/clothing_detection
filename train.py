@@ -44,7 +44,7 @@ if __name__ == "__main__":
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.bs, shuffle=True, num_workers=4, collate_fn=train_dataset.collate_fn)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=True, num_workers=4, collate_fn=val_dataset.collate_fn)
 
-    
+
     # Load in the model to be used
 
     with open(args.cfg) as f:

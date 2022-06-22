@@ -2,7 +2,7 @@ import os
 import json
 
 import torch
-import albumentations
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -19,25 +19,26 @@ class ObjectDataset(torch.utils.data.Dataset):
 
         self.n_classes = np.asarray(self.classes).flatten().max()[0] + 1
 
-        print("self.n_classes:", self.n_classes)
-
     def resize_image(self, img_arr, bboxes, h, w):
-        """
-        :param img_arr: original image as a numpy array
-        :param bboxes: bboxes as numpy array where each row is 'x_min', 'y_min', 'x_max', 'y_max', "class_id"
-        :param h: resized height dimension of image
-        :param w: resized weight dimension of image
-        :return: dictionary containing {image:transformed, bboxes:['x_min', 'y_min', 'x_max', 'y_max', "class_id"]}
-        """
+        
+        orig_h, orig_w = img_arr.shape[0], img_arr.shape[1]
 
-        # create resize transform pipeline
-        transform = albumentations.Compose(
-            [albumentations.Resize(height=h, width=w, always_apply=True)],
-            bbox_params=albumentations.BboxParams(format='coco'))
+        y_scale = h / orig_h
+        x_scale = w / orig_w
 
-        transformed = transform(image=img_arr, bboxes=bboxes)
+        img = np.asarray(cv2.resize(img_arr, (h, w)))
+        
+        new_bboxes = np.ndarray((bboxes.shape))
 
-        return transformed
+        for i, bbox in enumerate(bboxes):
+            x1, y1, x2, y2 = bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]
+            x1_ = int(np.round(x1 * x_scale))
+            y1_ = int(np.round(y1 * y_scale))
+            x2_ = int(np.round(x2 * x_scale))
+            y2_ = int(np.round(y2 * y_scale))
+            new_bboxes[i] = np.asarray([x1_, y1_, x2_ - x1_, y2_ - y1_, bbox[4]])
+        
+        return {"image": img, "bboxes": new_bboxes}
 
     def get_bboxes(self):
         
@@ -84,7 +85,7 @@ class ObjectDataset(torch.utils.data.Dataset):
         
         bbox = np.asarray(bbox)
 
-        resized = self.resize_image(img, bbox, 480, 640)
+        resized = self.resize_image(img, bbox, 512, 512)
         
         for i, r in enumerate(resized["bboxes"]):
             bboxes[i][1:] = torch.from_numpy(np.asarray(r))
@@ -106,7 +107,7 @@ class ObjectDataset(torch.utils.data.Dataset):
         ax.imshow(img)
 
         for bb in bbox:
-            rect = patches.Rectangle((bb[0], bb[1]), bb[2], bb[3], linewidth=1, edgecolor='r', facecolor='none')
+            rect = patches.Rectangle((bb[1], bb[2]), bb[3], bb[4], linewidth=1, edgecolor='r', facecolor='none')
             ax.add_patch(rect)
         
         plt.show()
