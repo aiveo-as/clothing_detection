@@ -17,6 +17,10 @@ class ObjectDataset(torch.utils.data.Dataset):
         self.images = [os.path.join(imagepath, i["file_name"]) for i in self.instances["images"]]
         self.bboxes, self.classes = self.get_bboxes()
 
+        self.n_classes = np.asarray(self.classes).flatten().max()[0] + 1
+
+        print("self.n_classes:", self.n_classes)
+
     def resize_image(self, img_arr, bboxes, h, w):
         """
         :param img_arr: original image as a numpy array
@@ -25,10 +29,11 @@ class ObjectDataset(torch.utils.data.Dataset):
         :param w: resized weight dimension of image
         :return: dictionary containing {image:transformed, bboxes:['x_min', 'y_min', 'x_max', 'y_max', "class_id"]}
         """
+
         # create resize transform pipeline
         transform = albumentations.Compose(
             [albumentations.Resize(height=h, width=w, always_apply=True)],
-            bbox_params=albumentations.BboxParams(format='pascal_voc'))
+            bbox_params=albumentations.BboxParams(format='coco'))
 
         transformed = transform(image=img_arr, bboxes=bboxes)
 
@@ -67,37 +72,67 @@ class ObjectDataset(torch.utils.data.Dataset):
         bbox = self.bboxes[idx]
         classes = self.classes[idx]
 
-        # Resize to 640, 480 - because it is the wished upon size
+        # Resize to 480, 640 - because it is the wished upon size
+
+        bboxes = torch.zeros((len(classes), 6))
+
+        for i in range(len(classes)):
+            bboxes[i][0] = i
 
         for i, c in enumerate(classes):
             bbox[i].append(c)
-
+        
         bbox = np.asarray(bbox)
 
         resized = self.resize_image(img, bbox, 480, 640)
+        
+        for i, r in enumerate(resized["bboxes"]):
+            bboxes[i][1:] = torch.from_numpy(np.asarray(r))
 
-        img = resized["image"]
-        bbox = resized["bboxes"]
+        img = torch.tensor(resized["image"])
+        bbox = bboxes
+        idx = torch.tensor(idx)
 
-        print(bbox)
-
-
-        return img, bbox
+        return {"img": img, "bbox": bbox, "id": idx}
 
     def visualize_annotations(self, idx):
-        img, bbox = self[idx]
+        item = self[idx]
 
-        print("Number of boxes:", len(bbox))
+        bbox = item["bbox"]
+        img = item["img"]
 
         _, ax = plt.subplots()
 
         ax.imshow(img)
 
         for bb in bbox:
-            rect = patches.Rectangle((bb[0], bb[1]), bb[2] - bb[0], bb[3] - bb[1], linewidth=1, edgecolor='r', facecolor='none')
+            rect = patches.Rectangle((bb[0], bb[1]), bb[2], bb[3], linewidth=1, edgecolor='r', facecolor='none')
             ax.add_patch(rect)
         
         plt.show()
+
+    def collate_fn(self, batch):
+        """
+        Since each image may have a different number of objects, we need a collate function (to be passed to the DataLoader).
+        This describes how to combine these tensors of different sizes. We use lists.
+        Note: this need not be defined in this Class, can be standalone.
+        :param batch: an iterable of N sets from __getitem__()
+        :return: a tensor of images, lists of varying-size tensors of bounding boxes, labels, and difficulties
+        """
+
+        images = list()
+        boxes = list()
+        ids = list()
+
+        for b in batch:
+            images.append(b["img"])
+            boxes.append(b["bbox"])
+            ids.append(b["id"])
+
+        images = torch.stack(images, dim=0)
+        boxes = torch.cat(boxes, 0)
+
+        return {"imgs": images, "bboxs": boxes, "ids": ids} # tensor (N, 3, 300, 300), 3 lists of N tensors each
 
 if __name__ == "__main__":
 

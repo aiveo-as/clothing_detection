@@ -26,7 +26,7 @@ def annotations_from_images(annotations, images, name) -> List:
 
 if __name__ == "__main__":
     miap = json.load(open("data/miap/instances_all_miap.json", "r"))
-    modanet = json.load(open("data/modanet/instances_all_modanet.json", "r"))
+    modanet = json.load(open("data/modanet/instances_all_modanet_transformed.json", "r"))
 
     # We do not want all categories in modanet, therefore we remove the following categories
 

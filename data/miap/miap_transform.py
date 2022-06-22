@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import cv2 as cv
 from tqdm import tqdm
+import numpy as np
 
 if __name__ == "__main__":
 
@@ -71,11 +72,17 @@ if __name__ == "__main__":
 
         img_h, img_w = img_dims[ann_id]["img_h"], img_dims[ann_id]["img_w"]
 
-        x1, x2, y1, y2 = annotation["XMin"] * img_w, annotation["XMax"] * img_w, annotation["YMin"] * img_h, annotation["YMax"] * img_w
+        x1, x2, y1, y2 = annotation["XMin"] * img_w, annotation["XMax"] * img_w, annotation["YMin"] * img_h, annotation["YMax"] * img_h
+
+        if x2 > img_w:
+            x2 = img_w
+         
+        if y2 > img_h:
+            y2 = img_h
 
         ann_info = {
             "image_id": ann_id,
-            "bbox": [x1, y1, x2, y2],
+            "bbox": [int(x1), int(y1), int(x2 - x1), int(y2 - y1)],
             "category_id": 1
         }
 

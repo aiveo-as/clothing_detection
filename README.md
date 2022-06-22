@@ -70,3 +70,22 @@ Example
 - torch
 - matplotlib
 - albumentations
+- torchvision
+
+## Info
+
+For the task we will be using the following classes:
+
+1. Bag
+2. Boots
+3. Footwear
+4. Outer
+5. Dress
+6. Pants
+7. Top
+8. Shorts
+9. Skirt
+10. Headwear
+11. Person
+
+To ensure that the clothes detected are on the person, I've implemented a heuristic that detects whether the bounding boxes of the clothes are within the bounding box of the person with a certain threshold.
