@@ -11,7 +11,7 @@ import torch
 import yaml
 from tqdm import tqdm
 
-from models.experimental import attempt_load
+from yolov7.experimental import attempt_load
 from utils.datasets import create_dataloader
 from utils.general import coco80_to_coco91_class, check_dataset, check_file, check_img_size, check_requirements, \
     box_iou, non_max_suppression, scale_coords, xyxy2xywh, xywh2xyxy, set_logging, increment_path, colorstr
@@ -37,7 +37,6 @@ def test(data,
          save_hybrid=False,  # for hybrid auto-labelling
          save_conf=False,  # save auto-label confidences
          plots=True,
-         wandb_logger=None,
          compute_loss=None,
          half_precision=True,
          trace=False,
@@ -81,8 +80,6 @@ def test(data,
 
     # Logging
     log_imgs = 0
-    if wandb_logger and wandb_logger.wandb:
-        log_imgs = min(wandb_logger.log_imgs, 100)
     # Dataloader
     if not training:
         if device.type != 'cpu':
@@ -98,7 +95,7 @@ def test(data,
     s = ('%20s' + '%12s' * 6) % ('Class', 'Images', 'Labels', 'P', 'R', 'mAP@.5', 'mAP@.5:.95')
     p, r, f1, mp, mr, map50, map, t0, t1 = 0., 0., 0., 0., 0., 0., 0., 0., 0.
     loss = torch.zeros(3, device=device)
-    jdict, stats, ap, ap_class, wandb_images = [], [], [], [], []
+    jdict, stats, ap, ap_class = [], [], [], []
     for batch_i, (img, targets, paths, shapes) in enumerate(tqdm(dataloader, desc=s)):
         img = img.to(device, non_blocking=True)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -148,18 +145,6 @@ def test(data,
                     line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
                     with open(save_dir / 'labels' / (path.stem + '.txt'), 'a') as f:
                         f.write(('%g ' * len(line)).rstrip() % line + '\n')
-
-            # W&B logging - Media Panel Plots
-            if len(wandb_images) < log_imgs and wandb_logger.current_epoch > 0:  # Check for test operation
-                if wandb_logger.current_epoch % wandb_logger.bbox_interval == 0:
-                    box_data = [{"position": {"minX": xyxy[0], "minY": xyxy[1], "maxX": xyxy[2], "maxY": xyxy[3]},
-                                 "class_id": int(cls),
-                                 "box_caption": "%s %.3f" % (names[cls], conf),
-                                 "scores": {"class_score": conf},
-                                 "domain": "pixel"} for *xyxy, conf, cls in pred.tolist()]
-                    boxes = {"predictions": {"box_data": box_data, "class_labels": names}}  # inference-space
-                    wandb_images.append(wandb_logger.wandb.Image(img[si], boxes=boxes, caption=path.name))
-            wandb_logger.log_training_progress(predn, path, names) if wandb_logger and wandb_logger.wandb_run else None
 
             # Append to pycocotools JSON dictionary
             if save_json:
@@ -243,11 +228,6 @@ def test(data,
     # Plots
     if plots:
         confusion_matrix.plot(save_dir=save_dir, names=list(names.values()))
-        if wandb_logger and wandb_logger.wandb:
-            val_batches = [wandb_logger.wandb.Image(str(f), caption=f.name) for f in sorted(save_dir.glob('test*.jpg'))]
-            wandb_logger.log({"Validation": val_batches})
-    if wandb_images:
-        wandb_logger.log({"Bounding Box Debugger/Images": wandb_images})
 
     # Save JSON
     if save_json and len(jdict):

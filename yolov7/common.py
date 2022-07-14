@@ -238,7 +238,7 @@ class Res(nn.Module):
 class ResX(Res):
     # ResNet bottleneck
     def __init__(self, c1, c2, shortcut=True, g=32, e=0.5):  # ch_in, ch_out, shortcut, groups, expansion
-        super().__init__(c1, c2, shortcu, g, e)
+        super().__init__(c1, c2, shortcut, g, e)
         c_ = int(c2 * e)  # hidden channels
 
 
@@ -1247,7 +1247,8 @@ class RepConv_OREPA(nn.Module):
             self.nonlinearity = nonlinear
 
         if use_se:
-            self.se = SEBlock(self.out_channels, internal_neurons=self.out_channels // 16)
+            #self.se = SEBlock(self.out_channels, internal_neurons=self.out_channels // 16)
+            print("Do not use SEBlock")
         else:
             self.se = nn.Identity()
 
@@ -1493,7 +1494,8 @@ class SwinTransformerLayer(nn.Module):
             dim, window_size=(self.window_size, self.window_size), num_heads=num_heads,
             qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop)
 
-        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        #self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.drop_path = nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
@@ -1839,7 +1841,8 @@ class SwinTransformerLayer_v2(nn.Module):
             qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=drop,
             pretrained_window_size=(pretrained_window_size, pretrained_window_size))
 
-        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        #self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.drop_path = nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp_v2(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)

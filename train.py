@@ -404,7 +404,6 @@ def train(hyp, opt, device, tb_writer=None):
                                                  save_dir=save_dir,
                                                  verbose=nc < 50 and final_epoch,
                                                  plots=plots and final_epoch,
-                                                 wandb_logger=None,
                                                  compute_loss=compute_loss,
                                                  is_coco=is_coco)
 
@@ -484,7 +483,7 @@ def train(hyp, opt, device, tb_writer=None):
                 strip_optimizer(f)  # strip optimizers
         if opt.bucket:
             os.system(f'gsutil cp {final} gs://{opt.bucket}/weights')  # upload
-            
+
     else:
         dist.destroy_process_group()
     torch.cuda.empty_cache()
