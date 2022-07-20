@@ -1,5 +1,8 @@
 import os
 import json
+from matplotlib import image
+
+from tqdm import tqdm
 
 import torch
 import cv2
@@ -9,8 +12,10 @@ import matplotlib.patches as patches
 
 class ObjectDataset(torch.utils.data.Dataset):
 
-    def __init__(self, imagepath, instancepath) -> None:
+    def __init__(self, imagepath, instancepath, img_dim=[512, 512]) -> None:
         super().__init__()
+
+        self.ydim, self.xdim = img_dim[0], img_dim[1]
 
         self.instances = json.load(open(instancepath, "r"))
 
@@ -19,26 +24,40 @@ class ObjectDataset(torch.utils.data.Dataset):
 
         self.n_classes = np.asarray(self.classes).flatten().max()[0] + 1
 
-    def resize_image(self, img_arr, bboxes, h, w):
-        
-        orig_h, orig_w = img_arr.shape[0], img_arr.shape[1]
+        self.shapes = self.get_shapes()
 
-        y_scale = h / orig_h
-        x_scale = w / orig_w
+        print("self.shapes.shape:", self.shapes.shape)
 
-        img = np.asarray(cv2.resize(img_arr, (h, w)))
-        
-        new_bboxes = np.ndarray((bboxes.shape))
+        self.labels = self.get_labels()
 
-        for i, bbox in enumerate(bboxes):
-            x1, y1, x2, y2 = bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]
-            x1_ = int(np.round(x1 * x_scale))
-            y1_ = int(np.round(y1 * y_scale))
-            x2_ = int(np.round(x2 * x_scale))
-            y2_ = int(np.round(y2 * y_scale))
-            new_bboxes[i] = np.asarray([x1_, y1_, x2_ - x1_, y2_ - y1_, bbox[4]])
+    
+    def get_shapes(self):
         
-        return {"image": img, "bboxes": new_bboxes}
+        shapes = np.zeros((len(self.images), 2))
+
+        for idx, im_path in enumerate(self.images):
+            im = plt.imread(im_path)
+            shapes[idx] = im.shape[:2]
+
+        return shapes
+
+    def get_labels(self):
+        
+        labels = list()
+
+        for _, imagex in tqdm(enumerate(range(len(self.classes))), total=len(self.classes), desc="Loading labels"):
+            per_image_labels = np.zeros((len(self.classes[imagex]), 6))
+            for idx in range(len(self.classes[imagex])):
+                per_image_labels[idx][1] = self.classes[imagex][idx]
+                bbox = self.bboxes[imagex][idx]
+                y, x = self.shapes[imagex]
+                bbox[0], bbox[2] = bbox[0] / x, bbox[2] / x
+                bbox[1], bbox[3] = bbox[1] / y, bbox[3] / y
+                per_image_labels[idx][2:] = bbox
+
+            labels.append(per_image_labels)
+        
+        return labels
 
     def get_bboxes(self):
         
@@ -60,7 +79,6 @@ class ObjectDataset(torch.utils.data.Dataset):
             bboxes.append(image_boxes)
             classes.append(image_classes)
 
-        
         return bboxes, classes
 
     
@@ -69,50 +87,38 @@ class ObjectDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         
-        img = plt.imread(self.images[idx])
-        bbox = self.bboxes[idx]
-        classes = self.classes[idx]
+        img = cv2.imread(self.images[idx])
 
-        # Resize to 480, 640 - because it is the wished upon size
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        bboxes = torch.zeros((len(classes), 6))
+        img = cv2.resize(img, (self.xdim, self.ydim))
 
-        for i in range(len(classes)):
-            bboxes[i][0] = i
+        labels = self.labels[idx]
 
-        for i, c in enumerate(classes):
-            bbox[i].append(c)
-        
-        bbox = np.asarray(bbox)
+        img = torch.tensor(img).permute(2, 0, 1)
+        bbox = torch.tensor(labels)
 
-        resized = self.resize_image(img, bbox, 512, 512)
-        
-        for i, r in enumerate(resized["bboxes"]):
-            bboxes[i][1:] = torch.from_numpy(np.asarray(r))
-
-        img = torch.tensor(resized["image"])
-        bbox = bboxes
-        idx = torch.tensor(idx)
-
-        return {"img": img, "bbox": bbox, "id": idx}
+        return img, bbox, self.images[idx], None
 
     def visualize_annotations(self, idx):
         item = self[idx]
 
-        bbox = item["bbox"]
-        img = item["img"]
+        bbox = item[1]
+        img = item[0].permute(1, 2, 0)
 
         _, ax = plt.subplots()
+
+        print("bbox:", bbox)
 
         ax.imshow(img)
 
         for bb in bbox:
-            rect = patches.Rectangle((bb[1], bb[2]), bb[3], bb[4], linewidth=1, edgecolor='r', facecolor='none')
+            rect = patches.Rectangle((bb[1] * self.xdim, bb[2] * self.ydim), bb[3] * self.xdim, bb[4] * self.ydim, linewidth=1, edgecolor='r', facecolor='none')
             ax.add_patch(rect)
         
-        plt.show()
+        plt.savefig("test_viz.png")
 
-    def collate_fn(self, batch):
+    def collate_fn(batch):
         """
         Since each image may have a different number of objects, we need a collate function (to be passed to the DataLoader).
         This describes how to combine these tensors of different sizes. We use lists.
@@ -123,17 +129,22 @@ class ObjectDataset(torch.utils.data.Dataset):
 
         images = list()
         boxes = list()
-        ids = list()
+        paths = list()
+        shapes = list()
 
         for b in batch:
-            images.append(b["img"])
-            boxes.append(b["bbox"])
-            ids.append(b["id"])
+            images.append(b[0])
+            boxes.append(b[1])
+            paths.append(b[2])
+            shapes.append(b[3])
+        
+        for i, l in enumerate(boxes):
+            l[:, 0] = i
 
         images = torch.stack(images, dim=0)
         boxes = torch.cat(boxes, 0)
 
-        return {"imgs": images, "bboxs": boxes, "ids": ids} # tensor (N, 3, 300, 300), 3 lists of N tensors each
+        return images, boxes, paths, shapes # tensor (N, 3, 300, 300), 3 lists of N tensors each
 
 if __name__ == "__main__":
 
@@ -141,4 +152,4 @@ if __name__ == "__main__":
 
     print(len(loader))
 
-    loader.visualize_annotations(4)
+    print(loader[0])

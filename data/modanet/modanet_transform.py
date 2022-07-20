@@ -15,6 +15,10 @@ if __name__ == "__main__":
         heightwidth[image["id"]] = {"height": image["height"], "width": image["width"]}
     
     for idx, annotation in tqdm(enumerate(modanet["annotations"]), total=len(modanet["annotations"])):
+
+        print("annotation:", annotation)
+        exit()
+
         bb = annotation["bbox"]
         im_id = annotation["image_id"]
         img = heightwidth[im_id]
