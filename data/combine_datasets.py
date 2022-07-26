@@ -6,6 +6,8 @@ import shutil
 from typing import List
 from tqdm import tqdm
 
+import argparse
+
 random.seed(1)
 
 def annotations_from_images(annotations, images, name) -> List:
@@ -25,6 +27,12 @@ def annotations_from_images(annotations, images, name) -> List:
     return new_annotations
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--percentage', type=float, default=1.0, help='data percentage')
+    opt = parser.parse_args()
+
+    percentage = opt.percentage
+
     miap = json.load(open("data/miap/instances_all_miap.json", "r"))
     modanet = json.load(open("data/modanet/instances_all_modanet_transformed.json", "r"))
 
@@ -65,8 +73,6 @@ if __name__ == "__main__":
 
     miap_val["images"] = []
     modanet_val["images"] = []
-
-    percentage = 0.01
 
     miap_imgs = miap["images"][:int(percentage * len(miap["images"]))]
     modanet_imgs = modanet["images"][:int(percentage * len(modanet["images"]))]
@@ -115,31 +121,83 @@ if __name__ == "__main__":
         "categories": modanet["categories"] + miap["categories"]
     }
 
-    json.dump(train, open("data/combined_train.json", "w"))
-    json.dump(val, open("data/combined_val.json", "w"))
-
-    if os.path.exists("data/val"):
-        shutil.rmtree("data/val")
+    if os.path.exists("data/images"):
+        shutil.rmtree("data/images")
     
-    os.mkdir("data/val")
+    os.mkdir("data/images")
+    os.mkdir("data/images/val")
+    os.mkdir("data/images/train")
 
     for img in val["images"]:
         filename = img["file_name"]
         try:
-            shutil.copy(os.path.join("data", "modanet", "images", filename), os.path.join("data", "val", filename))
+            shutil.copy(os.path.join("data", "modanet", "images", filename), os.path.join("data", "images", "val", filename))
         except:
-            shutil.copy(os.path.join("data", "miap", "images", filename), os.path.join("data", "val", filename))
-
-    if os.path.exists("data/train"):
-        shutil.rmtree("data/train")
-    
-    os.mkdir("data/train")
+            shutil.copy(os.path.join("data", "miap", "images", filename), os.path.join("data", "images", "val", filename))
 
     for img in train["images"]:
         filename = img["file_name"]
         try:
-            shutil.copy(os.path.join("data", "modanet", "images", filename), os.path.join("data", "train", filename))
+            shutil.copy(os.path.join("data", "modanet", "images", filename), os.path.join("data", "images", "train", filename))
         except:
-            shutil.copy(os.path.join("data", "miap", "images", filename), os.path.join("data", "train", filename))
+            shutil.copy(os.path.join("data", "miap", "images", filename), os.path.join("data", "images", "train", filename))
         
     
+    json.dump(train, open("data/combined_train.json", "w"))
+    json.dump(val, open("data/combined_val.json", "w"))
+
+    if os.path.exists("data/labels"):
+        shutil.rmtree("data/labels")
+
+    os.mkdir("data/labels")
+    os.mkdir("data/labels/val")
+    os.mkdir("data/labels/train")
+
+    val_image_annotations = {}
+    train_image_annotations = {}
+
+    for ann in val["annotations"]:
+        val_image_annotations[ann["image_id"]] = []
+
+    for ann in val["annotations"]:
+        t = []
+        t.append(ann["category_id"])
+        t.extend(ann["bbox"])
+        val_image_annotations[ann["image_id"]].append(t)
+    
+    for ann in train["annotations"]:
+        train_image_annotations[ann["image_id"]] = []
+
+    for ann in train["annotations"]:
+        t = []
+        t.append(ann["category_id"])
+        t.extend(ann["bbox"])
+        train_image_annotations[ann["image_id"]].append(t)
+    
+    for id, bboxes in val_image_annotations.items():
+        with open(f"data/labels/val/{id}.txt", "w") as f:
+            for box in bboxes:
+                box = [str(i) for i in box]
+                box_str = " ".join(box)
+                box_str += "\n"
+                f.write(box_str)
+    
+    for id, bboxes in train_image_annotations.items():
+        with open(f"data/labels/train/{id}.txt", "w") as f:
+            for box in bboxes:
+                box = [str(i) for i in box]
+                box_str = " ".join(box)
+                box_str += "\n"
+                f.write(box_str)
+    
+    with open("data/train.txt", "w") as f:
+        file_names = os.listdir("data/images/train")
+        file_paths = [os.path.join("./data/images/train/", filename) for filename in file_names]
+        for filepath in file_paths:
+            f.write(filepath + "\n")
+    
+    with open("data/val.txt", "w") as f:
+        file_names = os.listdir("data/images/val")
+        file_paths = [os.path.join("./data/images/val/", filename) for filename in file_names]
+        for filepath in file_paths:
+            f.write(filepath + "\n")

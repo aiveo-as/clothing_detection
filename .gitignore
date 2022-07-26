@@ -138,6 +138,8 @@ data/modanet/images
 
 data/train
 data/val
+data/images
+data/labels
 
 data/*.json
 
