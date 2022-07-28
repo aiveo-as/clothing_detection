@@ -5,7 +5,6 @@ import shutil
 
 from typing import List
 import cv2
-from sympy import nroots
 from tqdm import tqdm
 
 import argparse
