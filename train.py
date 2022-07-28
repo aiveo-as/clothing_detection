@@ -231,8 +231,8 @@ def train(hyp, opt, device, tb_writer=None):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model).to(device)
         logger.info('Using SyncBatchNorm()')
     
-    train_path = ["data/train", "data/combined_train.json"]
-    test_path = ["data/val", "data/combined_val.json"]
+    #train_path = ["data/train", "data/combined_train.json"]
+    #test_path = ["data/val", "data/combined_val.json"]
 
     # Trainloader
     dataloader, dataset = create_dataloader(train_path, imgsz, batch_size, gs, opt,
@@ -241,8 +241,6 @@ def train(hyp, opt, device, tb_writer=None):
                                             image_weights=opt.image_weights, quad=opt.quad, prefix=colorstr('train: '))
 
 
-
-    dataset.visualize_annotations(100)
 
     mlc = np.concatenate(dataset.labels, 0)[:, 0].max()  # max label class
     nb = len(dataloader)  # number of batches
@@ -514,7 +512,7 @@ if __name__ == '__main__':
     parser.add_argument('--noautoanchor', action='store_true', help='disable autoanchor check')
     parser.add_argument('--evolve', action='store_true', help='evolve hyperparameters')
     parser.add_argument('--bucket', type=str, default='', help='gsutil bucket')
-    parser.add_argument('--cache-images', action='store_true', help='cache images for faster training')
+    parser.add_argument('--cache-images', type=bool, help='cache images for faster training')
     parser.add_argument('--image-weights', action='store_true', help='use weighted image selection for training')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--multi-scale', action='store_true', help='vary img-size +/- 50%%')

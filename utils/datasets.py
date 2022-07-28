@@ -392,6 +392,8 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 else:
                     raise Exception(f'{prefix}{p} does not exist')
             self.img_files = sorted([x.replace('/', os.sep) for x in f if x.split('.')[-1].lower() in img_formats])
+            self.img_files = [x.replace("data/", "") for x in self.img_files]
+            self.img_files = ["data/" + x for x in self.img_files]
             # self.img_files = sorted([x for x in f if x.suffix[1:].lower() in img_formats])  # pathlib
             assert self.img_files, f'{prefix}No images found'
         except Exception as e:
@@ -497,11 +499,15 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 # verify labels
                 if os.path.isfile(lb_file):
                     nf += 1  # label found
+                    print("lb_file:", lb_file)
                     with open(lb_file, 'r') as f:
                         l = [x.split() for x in f.read().strip().splitlines()]
+                        print("l:", l)
                         if any([len(x) > 8 for x in l]):  # is segment
                             classes = np.array([x[0] for x in l], dtype=np.float32)
                             segments = [np.array(x[1:], dtype=np.float32).reshape(-1, 2) for x in l]  # (cls, xy1...)
+                            print("classes:", classes)
+                            print("segments:", segments)
                             l = np.concatenate((classes.reshape(-1, 1), segments2boxes(segments)), 1)  # (cls, xywh)
                         l = np.array(l, dtype=np.float32)
                     if len(l):

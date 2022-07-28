@@ -4,6 +4,8 @@ import random
 import shutil
 
 from typing import List
+import cv2
+from sympy import nroots
 from tqdm import tqdm
 
 import argparse
@@ -42,15 +44,21 @@ if __name__ == "__main__":
 
     remove_category_ids = []
 
+    print("len of annotations before removal:", len(modanet["annotations"]))
+
     for idx, category in enumerate(modanet["categories"]):
         if category["name"] in remove_categories:
             remove_category_ids.append(category["id"])
-            modanet["categories"].pop(idx)
+            modanet["categories"].remove(category)
 
-    for idx, annotation in enumerate(modanet["annotations"]):
-        if annotation["category_id"] in remove_category_ids:
-            modanet["annotations"].pop(idx)
+    new_annotations = []
 
+    for idx, annotation in tqdm(enumerate(modanet["annotations"]), total=len(modanet["annotations"]), desc="Removing annotations with removed categories"):
+        if not annotation["category_id"] in remove_category_ids:
+            new_annotations.append(annotation)
+        
+    modanet["annotations"] = new_annotations
+            
     miap_train, miap_val = {
         "images": [],
         "annotations": []
@@ -92,7 +100,7 @@ if __name__ == "__main__":
     modanet_val["images"] = modanet_imgs[int((1 - val_ratio) * len(modanet_imgs)):]
 
     print(len(miap_train["images"]), len(miap_val["images"]), len(modanet_train["images"]), len(modanet_val["images"]))
-
+    
     highest_category_id = max([i["id"] for i in modanet["categories"]])
     print("highest_category_id:", highest_category_id)
 
@@ -103,6 +111,7 @@ if __name__ == "__main__":
     
     for xid, annotation in enumerate(miap["annotations"]):
         miap["annotations"][xid]["category_id"] += highest_category_id
+    
 
     modanet_train["annotations"] = annotations_from_images(modanet["annotations"], modanet_train["images"], "modanet_train")
     modanet_val["annotations"] = annotations_from_images(modanet["annotations"], modanet_val["images"], "modanet_val")
@@ -120,6 +129,47 @@ if __name__ == "__main__":
         "annotations": modanet_val["annotations"] + miap_val["annotations"],
         "categories": modanet["categories"] + miap["categories"]
     }
+
+    new_category_ids = {}
+
+    for idx, category in enumerate(val["categories"]):
+        new_category_ids[category["id"]] = idx
+    
+    cats = []
+
+    for cat in val["categories"]:
+        cats.append(cat["id"])
+    
+    train_cats = []
+    train_anns = []
+
+    for annotation in train["annotations"]:
+        ann = annotation
+        ann["category_id"] = new_category_ids[annotation["category_id"]]
+        train_anns.append(ann)
+
+    train["annotations"] = train_anns
+
+    for category in train["categories"]:
+        cat = category
+        cat["id"] = new_category_ids[category["id"]]
+        train_cats.append(cat)
+
+    train["categories"] = train_cats
+
+    val_cats = []
+    val_anns = []
+
+    for annotation in val["annotations"]:
+        ann = annotation
+        ann["category_id"] = new_category_ids[annotation["category_id"]]
+        val_anns.append(ann)
+    
+    val["annotations"] = val_anns
+
+    cats = []
+    for i in train["annotations"]:
+        cats.append(i["category_id"])
 
     if os.path.exists("data/images"):
         shutil.rmtree("data/images")
@@ -157,6 +207,7 @@ if __name__ == "__main__":
     train_image_annotations = {}
 
     for ann in val["annotations"]:
+        print(str(ann["image_id"]))
         val_image_annotations[ann["image_id"]] = []
 
     for ann in val["annotations"]:
@@ -174,17 +225,31 @@ if __name__ == "__main__":
         t.extend(ann["bbox"])
         train_image_annotations[ann["image_id"]].append(t)
     
-    for id, bboxes in val_image_annotations.items():
-        with open(f"data/labels/val/{id}.txt", "w") as f:
+    for idx, bboxes in val_image_annotations.items():
+        if type(idx) != str and idx < 1_000_000:
+            idx = "0" + str(idx)
+        im = cv2.imread(f"data/images/val/{idx}.jpg")
+        with open(f"data/labels/val/{idx}.txt", "w") as f:
             for box in bboxes:
+                box[1] /= im.shape[1]
+                box[2] /= im.shape[0]
+                box[3] /= im.shape[1]
+                box[4] /= im.shape[0]
                 box = [str(i) for i in box]
                 box_str = " ".join(box)
                 box_str += "\n"
                 f.write(box_str)
     
-    for id, bboxes in train_image_annotations.items():
-        with open(f"data/labels/train/{id}.txt", "w") as f:
+    for idx, bboxes in train_image_annotations.items():
+        if type(idx) != str and idx < 1_000_000:
+            idx = "0" + str(idx)
+        im = cv2.imread(f"data/images/train/{idx}.jpg")
+        with open(f"data/labels/train/{idx}.txt", "w") as f:
             for box in bboxes:
+                box[1] /= im.shape[1]
+                box[2] /= im.shape[0]
+                box[3] /= im.shape[1]
+                box[4] /= im.shape[0]
                 box = [str(i) for i in box]
                 box_str = " ".join(box)
                 box_str += "\n"
