@@ -281,6 +281,14 @@ def xywhn2xyxy(x, w=640, h=640, padw=0, padh=0):
     y[:, 3] = h * (x[:, 1] + x[:, 3] / 2) + padh  # bottom right y
     return y
 
+def xywhn2xyxycustom(x, w=640, h=640, padw=0, padh=0):
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[:, 0] = w * (x[:, 0]) + padw  # top left x
+    y[:, 1] = h * (x[:, 1]) + padh  # top left y
+    y[:, 2] = w * (x[:, 0] + x[:, 2]) + padw  # bottom right x
+    y[:, 3] = h * (x[:, 1] + x[:, 3]) + padh  # bottom right y
+    return y
+
 
 def xyn2xy(x, w=640, h=640, padw=0, padh=0):
     # Convert normalized segments into pixel segments, shape (n,2)

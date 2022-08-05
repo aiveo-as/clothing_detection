@@ -47,9 +47,7 @@ Inside the data folder create a miap folder and change directories to it, we onl
 
 Then download the following files:
 
-> wget https://storage.googleapis.com/openimages/open_images_extended_miap/open_images_extended_miap_boxes_val.csv
-> wget https://storage.googleapis.com/openimages/open_images_extended_miap/open_images_extended_miap_images_val.lst
-> wget https://raw.githubusercontent.com/openimages/dataset/master/downloader.py
+> wget https://storage.googleapis.com/openimages/open_images_extended_miap/open_images_extended_miap_boxes_val.csv && wget https://storage.googleapis.com/openimages/open_images_extended_miap/open_images_extended_miap_images_val.lst && wget https://raw.githubusercontent.com/openimages/dataset/master/downloader.py
 
 Then run the following script
 
