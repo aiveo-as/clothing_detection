@@ -603,13 +603,9 @@ class ComputeLossOTA:
                 #pxy = ps[:, :2].sigmoid() * 3. - 1.
                 pwh = (ps[:, 2:4].sigmoid() * 2) ** 2 * anchors[i]
                 pbox = torch.cat((pxy, pwh), 1)  # predicted box
-                print("targets[i]:", targets[i])
                 selected_tbox = targets[i][:, 2:6] * pre_gen_gains[i]
                 selected_tbox[:, :2] -= grid
-                print("selected_tbox:", selected_tbox)
-                print("pbox.T:", pbox.T)
                 iou = bbox_iou(pbox.T, selected_tbox, x1y1x2y2=False, CIoU=True)  # iou(prediction, target)
-                print("iou:", iou)
                 lbox += (1.0 - iou).mean()  # iou loss
 
                 # Objectness
