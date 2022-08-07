@@ -92,3 +92,7 @@ To ensure that the clothes detected are on the person, I've implemented a heuris
 # Training with COCO
 
 > python train.py --workers 8 --device 0 --batch-size 32 --data coco_data/coco.yaml --img 640 640 --cfg cfg/training/yolov7.yaml --weights '' --name yolov7 --hyp coco_data/hyp.scratch.p5.yaml
+
+## Transfer learning
+
+> python train.py --workers 8 --device 0 --batch-size 32 --data coco_data/miap.yaml --img 640 640 --cfg cfg/training/yolov7-custom.yaml --weights 'yolov7_training.pt' --name yolov7-custom --hyp coco_data/hyp.scratch.custom.yaml
