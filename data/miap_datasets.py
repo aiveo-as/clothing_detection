@@ -116,6 +116,7 @@ if __name__ == "__main__":
         im = cv2.imread(f"data/images/val/{idx}.jpg")
         with open(f"data/labels/val/{idx}.txt", "w") as f:
             for box in bboxes:
+                box[0] = 0
                 box[1] /= im.shape[1]
                 box[2] /= im.shape[0]
                 box[3] /= im.shape[1]
@@ -131,6 +132,7 @@ if __name__ == "__main__":
         im = cv2.imread(f"data/images/train/{idx}.jpg")
         with open(f"data/labels/train/{idx}.txt", "w") as f:
             for box in bboxes:
+                box[0] = 0
                 box[1] /= im.shape[1]
                 box[2] /= im.shape[0]
                 box[3] /= im.shape[1]
