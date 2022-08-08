@@ -9,7 +9,7 @@ import numpy as np
 
 if __name__ == "__main__":
 
-    csv_path = "data/miap/open_images_extended_miap_boxes_val.csv"
+    csv_path = "data/miap/open_images_extended_miap_boxes_train.csv"
 
     df = pd.read_csv(csv_path)
 

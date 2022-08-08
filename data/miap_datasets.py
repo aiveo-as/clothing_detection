@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     random.shuffle(miap_imgs)
 
-    val_ratio = 0.1
+    val_ratio = 0.3
 
     miap_train["images"] = miap_imgs[:int((1 - val_ratio) * len(miap_imgs))]
     miap_val["images"] = miap_imgs[int((1 - val_ratio) * len(miap_imgs)):]
