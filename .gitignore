@@ -148,5 +148,5 @@ runs/
 *.zip
 *.cache
 *.pt
-data/train.txt
-data/val.txt
+data/*txt
+data/*txt
