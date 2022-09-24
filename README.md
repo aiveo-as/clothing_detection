@@ -99,3 +99,11 @@ Normal training schedule from _scratch_
 Transfer training schedule from _weights_
 
 > python train.py --workers 8 --device 0 --batch-size 32 --data coco_data/miap.yaml --img 640 640 --cfg cfg/training/yolov7-custom.yaml --weights 'yolov7_training.pt' --name yolov7-custom --hyp coco_data/hyp.scratch.custom.yaml
+
+## Test
+
+> python test.py --data coco_data/miap.yaml --img 640 --batch 32 --conf 0.001 --iou 0.65 --device 0 --weights runs/train/yolov7-custom8/weights/best.pt --name yolov7_640_val
+
+## Generate person labels
+
+>  python create_artificial_annotations.py --data coco_data/miap.yaml --img 640 --batch 32 --conf 0.001 --iou 0.65 --device 0 --weights person_best.pt --name yolov7_640_val
