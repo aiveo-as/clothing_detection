@@ -106,4 +106,4 @@ Transfer training schedule from _weights_
 
 ## Generate person labels
 
->  python create_artificial_annotations.py --data coco_data/miap.yaml --img 640 --batch 32 --conf 0.001 --iou 0.65 --device 0 --weights person_best.pt --name yolov7_640_val
+>  python create_artificial_annotations.py --data coco_data/modanet.yaml --img 640 --batch 32 --conf 0.001 --iou 0.65 --device 0 --weights person_best.pt --name yolov7_640_val

@@ -70,6 +70,8 @@ def test(data,
     if device.type != 'cpu':
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     task = opt.task if opt.task in ('train', 'val', 'test') else 'val'  # path to train/val/test images
+    # Use this to determine which dataset type to create annotations for
+    # task = "train"
     dataloader = create_dataloader(data[task], imgsz, batch_size, gs, opt, pad=0.5, rect=True,
                                    prefix=colorstr(f'{task}: '))[0]
 
@@ -92,7 +94,7 @@ def test(data,
         nb, _, height, width = img.shape  # batch size, channels, height, width
 
         with torch.no_grad():
-            # Run model
+            # Run modelx|
             t = time_synchronized()
             out, train_out = model(img, augment=augment)  # inference and training outputs
             t0 += time_synchronized() - t

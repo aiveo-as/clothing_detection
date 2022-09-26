@@ -24,6 +24,15 @@ if __name__ == "__main__":
     modanet = json.load(open("data/modanet/instances_all_modanet_transformed.json", "r"))
 
     # We do not want all categories in modanet, therefore we remove the following categories
+    
+    image_id_to_image_name = {}
+    
+    for key in modanet["images"]:
+        image_id_to_image_name[key["id"]] = key["file_name"]
+        
+    
+    print(image_id_to_image_name)
+    exit()
 
     remove_categories = ["sunglasses", "belt", "scarf/tie"]
 
