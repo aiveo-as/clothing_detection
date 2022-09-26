@@ -21,7 +21,17 @@ if __name__ == "__main__":
 
     percentage = opt.percentage
 
+    #val_predicted_humans = json.load(open("data/modanet/val_person_best_predictions.json", "r"))
+    #print(val_predicted_humans[0])
+
     modanet = json.load(open("data/modanet/instances_all_modanet_transformed.json", "r"))
+
+    image_id_to_image_filename = {}
+
+    for i in modanet["images"]:
+        image_id_to_image_filename[i["id"]] = i["file_name"]
+
+    #train_predicted_humans = json.load(open("data/modanet/train_person_best_predictions.json", "r"))
 
     # We do not want all categories in modanet, therefore we remove the following categories
     
@@ -103,6 +113,7 @@ if __name__ == "__main__":
     for idx, category in enumerate(val["categories"]):
         new_category_ids[category["id"]] = idx
 
+
     cats = []
 
     for cat in val["categories"]:
@@ -124,6 +135,8 @@ if __name__ == "__main__":
         train_cats.append(cat)
 
     train["categories"] = train_cats
+
+    print("train cats:", train["categories"])
 
     val_cats = []
     val_anns = []
@@ -170,34 +183,29 @@ if __name__ == "__main__":
     train_image_annotations = {}
 
     for ann in val["annotations"]:
-        print(ann["image_id"])
-        print(str(ann["image_id"]))
-        if len(str(ann["image_id"])) < 7:
-            print(str(ann["image_id"]))
-            print("NO")
-        val_image_annotations[ann["image_id"]] = []
+        val_image_annotations[image_id_to_image_filename[ann["image_id"]]] = []
 
     for ann in val["annotations"]:
         t = list()
         t.append(ann["category_id"])
         t.extend(ann["bbox"])
-        val_image_annotations[ann["image_id"]].append(t)
+        val_image_annotations[image_id_to_image_filename[ann["image_id"]]].append(t)
 
     for ann in train["annotations"]:
-        train_image_annotations[ann["image_id"]] = []
+        train_image_annotations[image_id_to_image_filename[ann["image_id"]]] = []
 
     for ann in train["annotations"]:
         t = list()
         t.append(ann["category_id"])
         t.extend(ann["bbox"])
-        train_image_annotations[ann["image_id"]].append(t)
+        train_image_annotations[image_id_to_image_filename[ann["image_id"]]].append(t)
 
     for idx, bboxes in val_image_annotations.items():
         if type(idx) != str and idx < 1_000_000:
             idx = "0" + str(idx)
-        im = cv2.imread(f"data/images/val/{idx}.jpg")
-        print(f"data/images/val/{idx}.jpg")
-        with open(f"data/labels/val/{idx}.txt", "w") as f:
+        im = cv2.imread(f"data/images/val/{idx}")
+        print(f"data/images/val/{idx}")
+        with open(f"data/labels/val/{idx.split('.')[0]}.txt", "w") as f:
             for box in bboxes:
                 box[1] /= im.shape[1]
                 box[2] /= im.shape[0]
@@ -211,8 +219,8 @@ if __name__ == "__main__":
     for idx, bboxes in train_image_annotations.items():
         if type(idx) != str and idx < 1_000_000:
             idx = "0" + str(idx)
-        im = cv2.imread(f"data/images/train/{idx}.jpg")
-        with open(f"data/labels/train/{idx}.txt", "w") as f:
+        im = cv2.imread(f"data/images/train/{idx}")
+        with open(f"data/labels/train/{idx.split('.')[0]}.txt", "w") as f:
             for box in bboxes:
                 box[1] /= im.shape[1]
                 box[2] /= im.shape[0]

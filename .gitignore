@@ -148,5 +148,4 @@ runs/
 *.zip
 *.cache
 *.pt
-data/*txt
-data/*txt
+*.txt
