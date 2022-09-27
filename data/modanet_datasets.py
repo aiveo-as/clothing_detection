@@ -21,24 +21,62 @@ if __name__ == "__main__":
 
     percentage = opt.percentage
 
-    #val_predicted_humans = json.load(open("data/modanet/val_person_best_predictions.json", "r"))
-    #print(val_predicted_humans[0])
 
     modanet = json.load(open("data/modanet/instances_all_modanet_transformed.json", "r"))
+    max_cat_id = max([i["id"] for i in modanet["categories"]])
+
+    for idx, img in enumerate(modanet["images"]):
+        modanet["images"][idx]["id"] = int(modanet["images"][idx]["id"])
+
+    for idx, ann in enumerate(modanet["annotations"]):
+        modanet["annotations"][idx]["image_id"] = int(modanet["annotations"][idx]["image_id"])
+
+    print(modanet["annotations"][0])
+
+    print(modanet["categories"])
+
+    modanet["categories"].append({"supercategory": "fashion", "id": max_cat_id + 1, "name": "person"})
+
+    val_predicted_humans = json.load(open("data/modanet/val_person_best_predictions.json", "r"))
+
+    for idx, i in enumerate(val_predicted_humans):
+        bb = i["bbox"]
+        bb = [bb[0], bb[1], bb[2] - bb[0], bb[3] - bb[1]]
+        val_predicted_humans[idx]["bbox"] = bb
+        val_predicted_humans[idx]["category_id"] = max_cat_id + 1
 
     image_id_to_image_filename = {}
 
-    for i in modanet["images"]:
-        image_id_to_image_filename[i["id"]] = i["file_name"]
 
-    #train_predicted_humans = json.load(open("data/modanet/train_person_best_predictions.json", "r"))
+    for i in modanet["images"]:
+        image_id_to_image_filename[int(i["id"])] = i["file_name"]
+
+    train_predicted_humans = json.load(open("data/modanet/train_person_best_predictions.json", "r"))
+
+    for idx, i in enumerate(train_predicted_humans):
+        bb = i["bbox"]
+        bb = [bb[0], bb[1], bb[2] - bb[0], bb[3] - bb[1]]
+        train_predicted_humans[idx]["bbox"] = bb
+        train_predicted_humans[idx]["category_id"] = max_cat_id + 1
+
+
+    print("len annotations:", len(modanet["annotations"]))
+
+    for i in train_predicted_humans:
+        modanet["annotations"].append(i)
+
+    for i in val_predicted_humans:
+        modanet["annotations"].append(i)
+
+
+    print("len annotations:", len(modanet["annotations"]))
 
     # We do not want all categories in modanet, therefore we remove the following categories
     
     image_id_to_image_name = {}
     
     for key in modanet["images"]:
-        image_id_to_image_name[key["id"]] = key["file_name"]
+        image_id_to_image_name[int(key["id"])] = key["file_name"]
         
     
     remove_categories = ["sunglasses", "belt", "scarf/tie"]
@@ -107,6 +145,8 @@ if __name__ == "__main__":
 
     new_category_ids = {}
 
+    print("val cats:", val["categories"])
+
     for idx, category in enumerate(val["categories"]):
         new_category_ids[category["id"]] = idx
 
@@ -121,6 +161,8 @@ if __name__ == "__main__":
 
     for annotation in train["annotations"]:
         ann = annotation
+        print(new_category_ids)
+        print(annotation["category_id"])
         ann["category_id"] = new_category_ids[annotation["category_id"]]
         train_anns.append(ann)
 
@@ -180,7 +222,7 @@ if __name__ == "__main__":
     train_image_annotations = {}
 
     for ann in val["annotations"]:
-        val_image_annotations[image_id_to_image_filename[ann["image_id"]]] = []
+        val_image_annotations[image_id_to_image_filename[int(ann["image_id"])]] = []
 
     for ann in val["annotations"]:
         t = list()

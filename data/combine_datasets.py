@@ -23,6 +23,7 @@ def annotations_from_images(annotations, images, name) -> List:
                 del annotation["segmentation"]
                 del annotation["iscrowd"]
                 del annotation["area"]
+
             new_annotations.append(annotation)
 
     return new_annotations
