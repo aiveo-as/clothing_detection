@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 
+from threading import Thread
 
 import numpy as np
 import torch
@@ -34,7 +35,7 @@ def test(data,
          save_txt=False,  # for auto-labelling
          save_hybrid=False,  # for hybrid auto-labelling
          save_conf=False,  # save auto-label confidences
-         plots=False,
+         plots=True,
          compute_loss=None,
          half_precision=True,
          trace=False,
@@ -71,7 +72,7 @@ def test(data,
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     task = opt.task if opt.task in ('train', 'val', 'test') else 'val'  # path to train/val/test images
     # Use this to determine which dataset type to create annotations for
-    # task = "train"
+    task = "train"
     dataloader = create_dataloader(data[task], imgsz, batch_size, gs, opt, pad=0.5, rect=True,
                                    prefix=colorstr(f'{task}: '))[0]
 
@@ -156,8 +157,8 @@ def test(data,
                 # target boxes
                 tbox = xywh2xyxy(labels[:, 1:5])
                 scale_coords(img[si].shape[1:], tbox, shapes[si][0], shapes[si][1])  # native-space labels
-                if plots:
-                    confusion_matrix.process_batch(predn, torch.cat((labels[:, 0:1], tbox), 1))
+                #if plots:
+                #    confusion_matrix.process_batch(predn, torch.cat((labels[:, 0:1], tbox), 1))
 
                 # Per target class
                 for cls in torch.unique(tcls_tensor):
@@ -190,33 +191,33 @@ def test(data,
             f = save_dir / f'test_batch{batch_i}_pred.jpg'  # predictions
             Thread(target=plot_images, args=(img, output_to_target(out), paths, f, names), daemon=True).start()
 
-    # Compute statistics
-    stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
-    if len(stats) and stats[0].any():
-        p, r, ap, f1, ap_class = ap_per_class(*stats, plot=plots, save_dir=save_dir, names=names)
-        ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
-        mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
-        nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
-    else:
-        nt = torch.zeros(1)
+    ## Compute statistics
+    #stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
+    #if len(stats) and stats[0].any():
+    #    p, r, ap, f1, ap_class = ap_per_class(*stats, plot=plots, save_dir=save_dir, names=names)
+    #    ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
+    #    mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
+    #    nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
+    #else:
+    #    nt = torch.zeros(1)
 
     # Print results
-    pf = '%20s' + '%12i' * 2 + '%12.3g' * 4  # print format
-    print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
+    #pf = '%20s' + '%12i' * 2 + '%12.3g' * 4  # print format
+    #print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
 
     # Print results per class
-    if (verbose or (nc < 50 and not training)) and nc > 1 and len(stats):
-        for i, c in enumerate(ap_class):
-            print(pf % (names[c], seen, nt[c], p[i], r[i], ap50[i], ap[i]))
+    #if (verbose or (nc < 50 and not training)) and nc > 1 and len(stats):
+    #    for i, c in enumerate(ap_class):
+    #        print(pf % (names[c], seen, nt[c], p[i], r[i], ap50[i], ap[i]))
 
     # Print speeds
-    t = tuple(x / seen * 1E3 for x in (t0, t1, t0 + t1)) + (imgsz, imgsz, batch_size)  # tuple
-    if not training:
-        print('Speed: %.1f/%.1f/%.1f ms inference/NMS/total per %gx%g image at batch-size %g' % t)
+    #t = tuple(x / seen * 1E3 for x in (t0, t1, t0 + t1)) + (imgsz, imgsz, batch_size)  # tuple
+    #if not training:
+    #    print('Speed: %.1f/%.1f/%.1f ms inference/NMS/total per %gx%g image at batch-size %g' % t)
 
     # Plots
-    if plots:
-        confusion_matrix.plot(save_dir=save_dir, names=list(names.values()))
+    #if plots:
+    #    confusion_matrix.plot(save_dir=save_dir, names=list(names.values()))
 
     # Save JSON
     if save_json and len(jdict):
@@ -227,31 +228,32 @@ def test(data,
         with open(pred_json, 'w') as f:
             json.dump(jdict, f)
 
-        try:  # https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb
-            from pycocotools.coco import COCO
-            from pycocotools.cocoeval import COCOeval
+        #try:  # https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb
+        #    from pycocotools.coco import COCO
+        #    from pycocotools.cocoeval import COCOeval
 
-            anno = COCO(anno_json)  # init annotations api
-            pred = anno.loadRes(pred_json)  # init predictions api
-            eval = COCOeval(anno, pred, 'bbox')
-            if is_coco:
-                eval.params.imgIds = [int(Path(x).stem) for x in dataloader.dataset.img_files]  # image IDs to evaluate
-            eval.evaluate()
-            eval.accumulate()
-            eval.summarize()
-            map, map50 = eval.stats[:2]  # update results (mAP@0.5:0.95, mAP@0.5)
-        except Exception as e:
-            print(f'pycocotools unable to run: {e}')
+        #    anno = COCO(anno_json)  # init annotations api
+        #    pred = anno.loadRes(pred_json)  # init predictions api
+        #    eval = COCOeval(anno, pred, 'bbox')
+        #    if is_coco:
+        #        eval.params.imgIds = [int(Path(x).stem) for x in dataloader.dataset.img_files]  # image IDs to evaluate
+        #    eval.evaluate()
+        #    eval.accumulate()
+        #    eval.summarize()
+        #    map, map50 = eval.stats[:2]  # update results (mAP@0.5:0.95, mAP@0.5)
+        #except Exception as e:
+        #    print(f'pycocotools unable to run: {e}')
 
     # Return results
-    model.float()  # for training
-    if not training:
-        s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
-        print(f"Results saved to {save_dir}{s}")
-    maps = np.zeros(nc) + map
-    for i, c in enumerate(ap_class):
-        maps[c] = ap[i]
-    return (mp, mr, map50, map, *(loss.cpu() / len(dataloader)).tolist()), maps, t
+    #model.float()  # for training
+    #if not training:
+    #    s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
+    #    print(f"Results saved to {save_dir}{s}")
+    #maps = np.zeros(nc) + map
+    #print("ap_class:", ap_class)
+    #for i, c in enumerate(ap_class):
+    #    maps[c] = ap[i]
+    #return (mp, mr, map50, map, *(loss.cpu() / len(dataloader)).tolist()), maps, t
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')

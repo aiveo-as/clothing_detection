@@ -41,9 +41,6 @@ if __name__ == "__main__":
         image_id_to_image_name[key["id"]] = key["file_name"]
         
     
-    print(image_id_to_image_name)
-    exit()
-
     remove_categories = ["sunglasses", "belt", "scarf/tie"]
 
     remove_category_ids = list()
@@ -204,7 +201,6 @@ if __name__ == "__main__":
         if type(idx) != str and idx < 1_000_000:
             idx = "0" + str(idx)
         im = cv2.imread(f"data/images/val/{idx}")
-        print(f"data/images/val/{idx}")
         with open(f"data/labels/val/{idx.split('.')[0]}.txt", "w") as f:
             for box in bboxes:
                 box[1] /= im.shape[1]
