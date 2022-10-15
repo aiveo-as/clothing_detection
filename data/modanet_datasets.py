@@ -31,17 +31,13 @@ if __name__ == "__main__":
     for idx, ann in enumerate(modanet["annotations"]):
         modanet["annotations"][idx]["image_id"] = int(modanet["annotations"][idx]["image_id"])
 
-    print(modanet["annotations"][0])
-
-    print(modanet["categories"])
-
     modanet["categories"].append({"supercategory": "fashion", "id": max_cat_id + 1, "name": "person"})
 
     val_predicted_humans = json.load(open("data/modanet/val_person_best_predictions.json", "r"))
-
+    
     for idx, i in enumerate(val_predicted_humans):
         bb = i["bbox"]
-        bb = [bb[0], bb[1], bb[2] - bb[0], bb[3] - bb[1]]
+        bb = [bb[0], bb[1], bb[2], bb[3]]
         val_predicted_humans[idx]["bbox"] = bb
         val_predicted_humans[idx]["category_id"] = max_cat_id + 1
 
@@ -55,12 +51,9 @@ if __name__ == "__main__":
 
     for idx, i in enumerate(train_predicted_humans):
         bb = i["bbox"]
-        bb = [bb[0], bb[1], bb[2] - bb[0], bb[3] - bb[1]]
+        bb = [bb[0], bb[1], bb[2], bb[3]]
         train_predicted_humans[idx]["bbox"] = bb
         train_predicted_humans[idx]["category_id"] = max_cat_id + 1
-
-
-    print("len annotations:", len(modanet["annotations"]))
 
     for i in train_predicted_humans:
         modanet["annotations"].append(i)
@@ -68,22 +61,14 @@ if __name__ == "__main__":
     for i in val_predicted_humans:
         modanet["annotations"].append(i)
 
-
-    print("len annotations:", len(modanet["annotations"]))
-
-    # We do not want all categories in modanet, therefore we remove the following categories
-    
     image_id_to_image_name = {}
     
     for key in modanet["images"]:
         image_id_to_image_name[int(key["id"])] = key["file_name"]
         
-    
     remove_categories = ["sunglasses", "belt", "scarf/tie"]
 
     remove_category_ids = list()
-
-    print("len of annotations before removal:", len(modanet["annotations"]))
 
     for idx, category in enumerate(modanet["categories"]):
         if category["name"] in remove_categories:
@@ -112,8 +97,6 @@ if __name__ == "__main__":
 
     modanet_imgs = modanet["images"][:int(percentage * len(modanet["images"]))]
 
-    print("Modanet number of images:", len(modanet_imgs))
-
     random.shuffle(modanet_imgs)
 
     val_ratio = 0.1
@@ -121,13 +104,11 @@ if __name__ == "__main__":
     modanet_train["images"] = modanet_imgs[:int((1 - val_ratio) * len(modanet_imgs))]
     modanet_val["images"] = modanet_imgs[int((1 - val_ratio) * len(modanet_imgs)):]
 
-    print(len(modanet_train["images"]), len(modanet_val["images"]))
+    print("modanet train / val:", len(modanet_train["images"]), len(modanet_val["images"]))
 
     highest_category_id = max([i["id"] for i in modanet["categories"]])
-    print("highest_category_id:", highest_category_id)
 
     # Adjust the ids of the second dataset
-
     modanet_train["annotations"] = annotations_from_images(modanet["annotations"], modanet_train["images"], "modanet_train")
     modanet_val["annotations"] = annotations_from_images(modanet["annotations"], modanet_val["images"], "modanet_val")
 
@@ -145,8 +126,6 @@ if __name__ == "__main__":
 
     new_category_ids = {}
 
-    print("val cats:", val["categories"])
-
     for idx, category in enumerate(val["categories"]):
         new_category_ids[category["id"]] = idx
 
@@ -161,8 +140,6 @@ if __name__ == "__main__":
 
     for annotation in train["annotations"]:
         ann = annotation
-        print(new_category_ids)
-        print(annotation["category_id"])
         ann["category_id"] = new_category_ids[annotation["category_id"]]
         train_anns.append(ann)
 
@@ -174,8 +151,6 @@ if __name__ == "__main__":
         train_cats.append(cat)
 
     train["categories"] = train_cats
-
-    print("train cats:", train["categories"])
 
     val_cats = []
     val_anns = []
